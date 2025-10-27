@@ -509,6 +509,7 @@ class DynamicIslandService : Service() {
 
     private fun sendMediaAction(action: String) {
         val intent = Intent("com.yourapp.dynamicisland.MEDIA_ACTION")
+        intent.setPackage(packageName) // Makes the intent explicit
         intent.putExtra("action", action)
         sendBroadcast(intent)
     }

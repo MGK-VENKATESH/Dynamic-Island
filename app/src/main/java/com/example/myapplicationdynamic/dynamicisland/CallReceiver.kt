@@ -84,4 +84,4 @@ class CallReceiver : BroadcastReceiver() {
         intent.putExtra("type", "hide")
         context.sendBroadcast(intent)
     }
-}}
+}
