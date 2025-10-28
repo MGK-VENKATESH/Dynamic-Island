@@ -1,7 +1,6 @@
-package com.example.myapplicationdynamic.dynamicisland
+package com.yourapp.dynamicisland
 
-
-
+import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
 import android.widget.*
@@ -98,16 +97,16 @@ class SettingsActivity : AppCompatActivity() {
         }
 
         // Notify service to update settings
-        val intent = android.content.Intent("com.yourapp.dynamicisland.SETTINGS_CHANGED")
+        val intent = Intent("com.yourapp.dynamicisland.SETTINGS_CHANGED")
         sendBroadcast(intent)
 
-        Toast.makeText(this, "Settings saved", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, getString(R.string.settings_saved), Toast.LENGTH_SHORT).show()
         finish()
     }
 
     private fun resetToDefaults() {
         prefs.edit().clear().apply()
         loadSettings()
-        Toast.makeText(this, "Reset to defaults", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, getString(R.string.reset_to_defaults), Toast.LENGTH_SHORT).show()
     }
 }

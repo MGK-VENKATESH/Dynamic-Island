@@ -1,9 +1,5 @@
 package com.example.myapplicationdynamic.dynamicisland
 
-
-
-
-
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -12,8 +8,10 @@ import android.telephony.TelephonyManager
 
 class CallReceiver : BroadcastReceiver() {
 
-    private var callTimer: CountDownTimer? = null
-    private var callStartTime: Long = 0
+    companion object {
+        private var callTimer: CountDownTimer? = null
+        private var callStartTime: Long = 0
+    }
 
     override fun onReceive(context: Context?, intent: Intent?) {
         if (intent?.action == TelephonyManager.ACTION_PHONE_STATE_CHANGED) {
@@ -29,16 +27,13 @@ class CallReceiver : BroadcastReceiver() {
 
                 when (state) {
                     TelephonyManager.EXTRA_STATE_RINGING -> {
-                        // Incoming call
                         showCallIsland(it, "Incoming Call", contactName, true)
                     }
                     TelephonyManager.EXTRA_STATE_OFFHOOK -> {
-                        // Call answered
                         callStartTime = System.currentTimeMillis()
                         startCallTimer(it, contactName)
                     }
                     TelephonyManager.EXTRA_STATE_IDLE -> {
-                        // Call ended
                         stopCallTimer()
                         hideCallIsland(it)
                     }

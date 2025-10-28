@@ -1,9 +1,6 @@
-package com.example.myapplicationdynamic.dynamicisland
-
-
+package com.yourapp.dynamicisland
 
 import android.Manifest
-import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -13,18 +10,16 @@ import android.provider.Settings
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 
 class PermissionsActivity : AppCompatActivity() {
 
-    private val PERMISSION_REQUEST_CODE = 1001
-    private val NOTIFICATION_PERMISSION_CODE = 1002
+    private val OVERLAY_PERMISSION_REQ_CODE = 1001
     private val PHONE_PERMISSION_CODE = 1003
     private val BLUETOOTH_PERMISSION_CODE = 1004
-
-    private val requiredPermissions = mutableListOf<String>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,43 +31,52 @@ class PermissionsActivity : AppCompatActivity() {
 
     private fun setupPermissionsList() {
         val container: LinearLayout = findViewById(R.id.permissionsContainer)
+        container.removeAllViews() // Clear previous items
 
         // Overlay Permission
-        addPermissionItem(container, "Draw Over Other Apps",
-            "Required to display Dynamic Island",
-            Settings.canDrawOverlays(this)) {
+        addPermissionItem(
+            container, getString(R.string.draw_over_apps),
+            getString(R.string.draw_over_apps_desc),
+            Settings.canDrawOverlays(this)
+        ) {
             requestOverlayPermission()
         }
 
         // Notification Access
-        addPermissionItem(container, "Notification Access",
-            "Required to detect music playback",
-            isNotificationAccessGranted()) {
+        addPermissionItem(
+            container, getString(R.string.notification_access),
+            getString(R.string.notification_access_desc),
+            isNotificationAccessGranted()
+        ) {
             requestNotificationAccess()
         }
 
         // Phone Permission
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            addPermissionItem(container, "Phone State",
-                "Required to show call information",
-                checkPermission(Manifest.permission.READ_PHONE_STATE)) {
-                requestPhonePermission()
-            }
+        addPermissionItem(
+            container, getString(R.string.phone_state),
+            getString(R.string.phone_state_desc),
+            checkPermission(Manifest.permission.READ_PHONE_STATE)
+        ) {
+            requestPhonePermission()
         }
 
         // Bluetooth Permission
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            addPermissionItem(container, "Bluetooth",
-                "Required to detect device connections",
-                checkPermission(Manifest.permission.BLUETOOTH_CONNECT)) {
+            addPermissionItem(
+                container, getString(R.string.bluetooth),
+                getString(R.string.bluetooth_desc),
+                checkPermission(Manifest.permission.BLUETOOTH_CONNECT)
+            ) {
                 requestBluetoothPermission()
             }
         }
     }
 
-    private fun addPermissionItem(container: LinearLayout, title: String,
-                                  description: String, isGranted: Boolean,
-                                  onClick: () -> Unit) {
+    private fun addPermissionItem(
+        container: LinearLayout, title: String,
+        description: String, isGranted: Boolean,
+        onClick: () -> Unit
+    ) {
         val itemView = layoutInflater.inflate(R.layout.permission_item, container, false)
         itemView.findViewById<TextView>(R.id.permissionTitle).text = title
         itemView.findViewById<TextView>(R.id.permissionDescription).text = description
@@ -81,12 +85,12 @@ class PermissionsActivity : AppCompatActivity() {
         val grantButton = itemView.findViewById<Button>(R.id.grantButton)
 
         if (isGranted) {
-            statusText.text = "✓ Granted"
+            statusText.text = getString(R.string.granted)
             statusText.setTextColor(ContextCompat.getColor(this, android.R.color.holo_green_dark))
             grantButton.isEnabled = false
-            grantButton.text = "Granted"
+            grantButton.text = getString(R.string.granted)
         } else {
-            statusText.text = "✗ Not Granted"
+            statusText.text = getString(R.string.not_granted)
             statusText.setTextColor(ContextCompat.getColor(this, android.R.color.holo_red_dark))
             grantButton.setOnClickListener { onClick() }
         }
@@ -99,9 +103,11 @@ class PermissionsActivity : AppCompatActivity() {
             if (checkAllPermissions()) {
                 finish()
             } else {
-                android.widget.Toast.makeText(this,
-                    "Please grant all required permissions",
-                    android.widget.Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    this,
+                    getString(R.string.grant_all_permissions),
+                    Toast.LENGTH_SHORT
+                ).show()
             }
         }
 
@@ -111,9 +117,11 @@ class PermissionsActivity : AppCompatActivity() {
     }
 
     private fun requestOverlayPermission() {
-        val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-            Uri.parse("package:$packageName"))
-        startActivityForResult(intent, PERMISSION_REQUEST_CODE)
+        val intent = Intent(
+            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+            Uri.parse("package:$packageName")
+        )
+        startActivityForResult(intent, OVERLAY_PERMISSION_REQ_CODE)
     }
 
     private fun requestNotificationAccess() {
@@ -121,16 +129,20 @@ class PermissionsActivity : AppCompatActivity() {
     }
 
     private fun requestPhonePermission() {
-        ActivityCompat.requestPermissions(this,
+        ActivityCompat.requestPermissions(
+            this,
             arrayOf(Manifest.permission.READ_PHONE_STATE),
-            PHONE_PERMISSION_CODE)
+            PHONE_PERMISSION_CODE
+        )
     }
 
     private fun requestBluetoothPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            ActivityCompat.requestPermissions(this,
+            ActivityCompat.requestPermissions(
+                this,
                 arrayOf(Manifest.permission.BLUETOOTH_CONNECT),
-                BLUETOOTH_PERMISSION_CODE)
+                BLUETOOTH_PERMISSION_CODE
+            )
         }
     }
 
@@ -150,20 +162,26 @@ class PermissionsActivity : AppCompatActivity() {
 
     private fun isNotificationAccessGranted(): Boolean {
         val enabledListeners = Settings.Secure.getString(
-            contentResolver, "enabled_notification_listeners")
+            contentResolver, "enabled_notification_listeners"
+        )
         return enabledListeners?.contains(packageName) == true
     }
 
     private fun checkAllPermissions(): Boolean {
-        return Settings.canDrawOverlays(this) &&
+        var allGranted = Settings.canDrawOverlays(this) &&
                 isNotificationAccessGranted() &&
                 checkPermission(Manifest.permission.READ_PHONE_STATE)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            allGranted = allGranted && checkPermission(Manifest.permission.BLUETOOTH_CONNECT)
+        }
+
+        return allGranted
     }
 
     override fun onResume() {
         super.onResume()
         // Refresh permissions status
-        findViewById<LinearLayout>(R.id.permissionsContainer).removeAllViews()
         setupPermissionsList()
     }
 }

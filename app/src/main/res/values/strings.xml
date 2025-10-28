@@ -60,6 +60,8 @@
     <string name="incoming_call">Incoming…</string>
     <string name="unknown">Unknown</string>
     <string name="unknown_artist">Unknown Artist</string>
+    <string name="battery_level">%d%%</string>
+    <string name="timer_initial_value">00:00</string>
 
     <!-- Features List -->
     <string name="features_available">Features Available:</string>
