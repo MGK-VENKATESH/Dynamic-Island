@@ -26,6 +26,7 @@
         android:theme="@style/Theme.MyApplicationDynamic"
         tools:targetApi="31">
 
+        <!-- Main Activity -->
         <activity
             android:name="com.example.myapplicationdynamic.dynamicisland.MainActivity"
             android:exported="true">
@@ -33,6 +34,21 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+        </activity>
+
+        <!-- Settings Activity -->
+        <activity
+            android:name="com.example.myapplicationdynamic.dynamicisland.SettingsActivity"
+            android:exported="false"
+            android:label="Settings"
+            android:parentActivityName="com.example.myapplicationdynamic.dynamicisland.MainActivity">
+        </activity>
+
+        <!-- Permissions Activity -->
+        <activity
+            android:name="com.example.myapplicationdynamic.dynamicisland.PermissionsActivity"
+            android:exported="false"
+            android:label="Permissions">
         </activity>
 
         <!-- Dynamic Island Service with foregroundServiceType -->
