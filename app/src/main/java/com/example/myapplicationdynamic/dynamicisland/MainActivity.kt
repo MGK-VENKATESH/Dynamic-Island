@@ -7,6 +7,8 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import android.util.Log
 import android.widget.Button
@@ -49,6 +51,13 @@ class MainActivity : Activity() {
         }
 
         checkAllPermissions()
+
+        // Check notification listener permission
+        if (!checkNotificationListenerPermission()) {
+            Handler(Looper.getMainLooper()).postDelayed({
+                requestNotificationListenerPermission()
+            }, 1000)
+        }
     }
 
     private fun checkAllPermissions() {
@@ -70,6 +79,16 @@ class MainActivity : Activity() {
         if (!checkPhonePermission()) {
             Log.d(TAG, "Phone permission not granted, requesting...")
             requestPhonePermission()
+        }
+
+        if (!checkNotificationListenerPermission()) {
+            Toast.makeText(
+                this,
+                "Please enable notification access for music detection",
+                Toast.LENGTH_LONG
+            ).show()
+            requestNotificationListenerPermission()
+            return
         }
 
         startIslandService()
@@ -94,6 +113,16 @@ class MainActivity : Activity() {
         }
     }
 
+    private fun checkNotificationListenerPermission(): Boolean {
+        val listeners = Settings.Secure.getString(
+            contentResolver,
+            "enabled_notification_listeners"
+        )
+        val isEnabled = listeners != null && listeners.contains(packageName)
+        Log.d(TAG, "Notification Listener enabled: $isEnabled")
+        return isEnabled
+    }
+
     private fun requestOverlayPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             val intent = Intent(
@@ -112,6 +141,16 @@ class MainActivity : Activity() {
                 PHONE_PERMISSION_REQ_CODE
             )
         }
+    }
+
+    private fun requestNotificationListenerPermission() {
+        val intent = Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS")
+        startActivity(intent)
+        Toast.makeText(
+            this,
+            "Please enable notification access for Dynamic Island",
+            Toast.LENGTH_LONG
+        ).show()
     }
 
     private fun openSettings() {
@@ -169,7 +208,7 @@ class MainActivity : Activity() {
 
             Toast.makeText(
                 this,
-                "Dynamic Island Started! ✨\nTry the settings!",
+                "Dynamic Island Started! ✨\nPlay music to see it in action!",
                 Toast.LENGTH_LONG
             ).show()
 
@@ -198,21 +237,5 @@ class MainActivity : Activity() {
     override fun onResume() {
         super.onResume()
         checkAllPermissions()
-
-        // Test sending broadcasts
-        sendTestBroadcasts()
-    }
-
-    private fun sendTestBroadcasts() {
-        // You can manually trigger these for testing
-        android.os.Handler(mainLooper).postDelayed({
-            // Test music player
-            val musicIntent = Intent("com.yourapp.dynamicisland.UPDATE_ISLAND")
-            musicIntent.putExtra("type", "music")
-            musicIntent.putExtra("title", "Test Song")
-            musicIntent.putExtra("artist", "Test Artist")
-            musicIntent.putExtra("isPlaying", true)
-            // Uncomment to test: sendBroadcast(musicIntent)
-        }, 5000)
     }
 }
