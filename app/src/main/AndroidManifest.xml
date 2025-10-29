@@ -33,12 +33,23 @@
             </intent-filter>
         </activity>
 
+        <!-- Dynamic Island Service -->
         <service
             android:name="com.example.myapplicationdynamic.dynamicisland.DynamicIslandService"
             android:enabled="true"
             android:exported="false"/>
 
-        <!-- Receivers -->
+        <!-- Notification Listener Service -->
+        <service
+            android:name="com.example.myapplicationdynamic.dynamicisland.NotificationListener"
+            android:exported="true"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService"/>
+            </intent-filter>
+        </service>
+
+        <!-- Call Receiver -->
         <receiver
             android:name="com.example.myapplicationdynamic.dynamicisland.CallReceiver"
             android:exported="true">
@@ -47,12 +58,32 @@
             </intent-filter>
         </receiver>
 
+        <!-- Bluetooth Receiver -->
         <receiver
             android:name="com.example.myapplicationdynamic.dynamicisland.BluetoothReceiver"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.bluetooth.device.action.ACL_CONNECTED"/>
                 <action android:name="android.bluetooth.device.action.ACL_DISCONNECTED"/>
+            </intent-filter>
+        </receiver>
+
+        <!-- Media Controller Receiver -->
+        <receiver
+            android:name="com.example.myapplicationdynamic.dynamicisland.MediaController"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.example.myapplicationdynamic.dynamicisland.MEDIA_ACTION"/>
+            </intent-filter>
+        </receiver>
+
+        <!-- Screen State Receiver -->
+        <receiver
+            android:name="com.example.myapplicationdynamic.dynamicisland.ScreenStateReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.SCREEN_ON"/>
+                <action android:name="android.intent.action.USER_PRESENT"/>
             </intent-filter>
         </receiver>
 
