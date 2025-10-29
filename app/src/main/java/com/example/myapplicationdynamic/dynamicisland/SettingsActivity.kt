@@ -2,7 +2,10 @@ package com.example.myapplicationdynamic.dynamicisland
 
 import android.app.Activity
 import android.content.Context
+import android.content.Intent
+import android.os.Build
 import android.os.Bundle
+import android.os.Handler
 import android.util.Log
 import android.widget.Button
 import android.widget.SeekBar
@@ -83,7 +86,6 @@ class SettingsActivity : Activity() {
 
     private fun loadSettings() {
         try {
-            // Load saved values or use defaults
             val position = prefs.getInt("position", 20)
             val size = prefs.getInt("size", 50)
             val autoExpand = prefs.getBoolean("autoExpand", true)
@@ -95,7 +97,6 @@ class SettingsActivity : Activity() {
             val showBluetooth = prefs.getBoolean("showBluetooth", true)
             val showFaceUnlock = prefs.getBoolean("showFaceUnlock", true)
 
-            // Set values
             positionSeekBar.progress = position
             positionValue.text = "${position}dp"
 
@@ -119,7 +120,6 @@ class SettingsActivity : Activity() {
 
     private fun setupListeners() {
         try {
-            // Position SeekBar
             positionSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                     positionValue.text = "${progress}dp"
@@ -128,7 +128,6 @@ class SettingsActivity : Activity() {
                 override fun onStopTrackingTouch(seekBar: SeekBar?) {}
             })
 
-            // Size SeekBar
             sizeSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                     sizeValue.text = "${progress}%"
@@ -137,12 +136,10 @@ class SettingsActivity : Activity() {
                 override fun onStopTrackingTouch(seekBar: SeekBar?) {}
             })
 
-            // Save Button
             btnSave.setOnClickListener {
                 saveSettings()
             }
 
-            // Reset Button
             btnReset.setOnClickListener {
                 resetToDefaults()
             }
@@ -169,6 +166,25 @@ class SettingsActivity : Activity() {
             editor.putBoolean("showFaceUnlock", showFaceUnlockSwitch.isChecked)
 
             editor.apply()
+
+            // Restart the DynamicIslandService automatically
+            try {
+                val stopIntent = Intent(this, DynamicIslandService::class.java)
+                stopService(stopIntent)
+
+                Handler(mainLooper).postDelayed({
+                    val startIntent = Intent(this, DynamicIslandService::class.java)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        startForegroundService(startIntent)
+                    } else {
+                        startService(startIntent)
+                    }
+                }, 500)
+
+                Log.d(TAG, "DynamicIslandService restarted successfully")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error restarting DynamicIslandService", e)
+            }
 
             Toast.makeText(this, "Settings saved! ✓", Toast.LENGTH_SHORT).show()
             Log.d(TAG, "Settings saved successfully")
