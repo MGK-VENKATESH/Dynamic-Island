@@ -169,7 +169,7 @@ class MainActivity : Activity() {
 
             Toast.makeText(
                 this,
-                "Dynamic Island Started! ✨\nLook at the top of screen",
+                "Dynamic Island Started! ✨\nTry the settings!",
                 Toast.LENGTH_LONG
             ).show()
 
@@ -198,5 +198,21 @@ class MainActivity : Activity() {
     override fun onResume() {
         super.onResume()
         checkAllPermissions()
+
+        // Test sending broadcasts
+        sendTestBroadcasts()
+    }
+
+    private fun sendTestBroadcasts() {
+        // You can manually trigger these for testing
+        android.os.Handler(mainLooper).postDelayed({
+            // Test music player
+            val musicIntent = Intent("com.yourapp.dynamicisland.UPDATE_ISLAND")
+            musicIntent.putExtra("type", "music")
+            musicIntent.putExtra("title", "Test Song")
+            musicIntent.putExtra("artist", "Test Artist")
+            musicIntent.putExtra("isPlaying", true)
+            // Uncomment to test: sendBroadcast(musicIntent)
+        }, 5000)
     }
 }

@@ -57,6 +57,21 @@ class DynamicIslandService : Service() {
     private var expandTimer: CountDownTimer? = null
     private var isViewAdded = false
 
+    // Settings
+    private lateinit var prefs: SharedPreferences
+    private var islandPositionY = 20
+    private var islandSize = 50
+    private var autoExpandEnabled = true
+    private var vibrateEnabled = true
+    private var hapticFeedback: HapticFeedback? = null
+
+    // Broadcast receiver for island updates
+    private val islandUpdateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            intent?.let { handleIslandUpdate(it) }
+        }
+    }
+
     enum class IslandActivity {
         NONE, MUSIC, TIMER, CALL, CHARGING, FACE_UNLOCK, AIRPODS, RECORDING, SCREEN_RECORDING, ALARM
     }
@@ -66,6 +81,15 @@ class DynamicIslandService : Service() {
         Log.d(TAG, "========== SERVICE STARTING ==========")
 
         try {
+            // Load settings
+            prefs = getSharedPreferences("DynamicIslandSettings", Context.MODE_PRIVATE)
+            loadSettings()
+
+            // Initialize haptic feedback
+            if (vibrateEnabled) {
+                hapticFeedback = HapticFeedback(this)
+            }
+
             createNotificationChannel()
             startForeground(NOTIFICATION_ID, createNotification())
             Log.d(TAG, "✓ Foreground service started")
@@ -75,6 +99,17 @@ class DynamicIslandService : Service() {
 
             createIslandView()
 
+            // Register broadcast receiver
+            val filter = IntentFilter().apply {
+                addAction("com.yourapp.dynamicisland.UPDATE_ISLAND")
+                addAction("com.yourapp.dynamicisland.SHOW_CALL")
+                addAction("com.yourapp.dynamicisland.SHOW_TIMER")
+                addAction("com.yourapp.dynamicisland.SHOW_MUSIC")
+            }
+            registerReceiver(islandUpdateReceiver, filter, RECEIVER_NOT_EXPORTED)
+            Log.d(TAG, "✓ Broadcast receiver registered")
+
+            // Show test island after delay
             android.os.Handler(mainLooper).postDelayed({
                 Log.d(TAG, "Showing test island...")
                 showTestIsland()
@@ -85,6 +120,193 @@ class DynamicIslandService : Service() {
             Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_LONG).show()
             stopSelf()
         }
+    }
+
+    private fun loadSettings() {
+        islandPositionY = prefs.getInt("position", 20)
+        islandSize = prefs.getInt("size", 50)
+        autoExpandEnabled = prefs.getBoolean("autoExpand", true)
+        vibrateEnabled = prefs.getBoolean("vibrate", true)
+
+        Log.d(TAG, "Settings loaded: position=$islandPositionY, size=$islandSize, autoExpand=$autoExpandEnabled, vibrate=$vibrateEnabled")
+    }
+
+    private fun handleIslandUpdate(intent: Intent) {
+        val type = intent.getStringExtra("type") ?: return
+
+        Log.d(TAG, "Island update received: $type")
+
+        when (type) {
+            "hide" -> hideIsland()
+            "music" -> {
+                if (prefs.getBoolean("showMusic", true)) {
+                    showMusicPlayer(intent)
+                }
+            }
+            "call" -> {
+                if (prefs.getBoolean("showCalls", true)) {
+                    showCall(intent)
+                }
+            }
+            "charging" -> {
+                if (prefs.getBoolean("showCharging", true)) {
+                    showCharging(intent)
+                }
+            }
+            "timer" -> {
+                if (prefs.getBoolean("showTimer", true)) {
+                    showTimer(intent)
+                }
+            }
+            "airpods" -> {
+                if (prefs.getBoolean("showBluetooth", true)) {
+                    showAirPods(intent)
+                }
+            }
+            "faceunlock" -> {
+                if (prefs.getBoolean("showFaceUnlock", true)) {
+                    showFaceUnlock()
+                }
+            }
+        }
+    }
+
+    private fun showMusicPlayer(intent: Intent) {
+        val title = intent.getStringExtra("title") ?: "Unknown"
+        val artist = intent.getStringExtra("artist") ?: "Unknown Artist"
+        val isPlaying = intent.getBooleanExtra("isPlaying", true)
+
+        expandedTitle?.text = title
+        expandedSubtitle?.text = artist
+        compactIcon1?.setImageResource(if (isPlaying) android.R.drawable.ic_media_play else android.R.drawable.ic_media_pause)
+        expandedIcon?.setImageResource(android.R.drawable.ic_media_play)
+
+        showIsland()
+        if (autoExpandEnabled) {
+            android.os.Handler(mainLooper).postDelayed({
+                if (!isExpanded) expandIsland()
+            }, 1500)
+        }
+    }
+
+    private fun showCall(intent: Intent) {
+        val contactName = intent.getStringExtra("contactName") ?: "Unknown"
+        val duration = intent.getStringExtra("duration") ?: "00:00"
+        val isIncoming = intent.getBooleanExtra("isIncoming", true)
+
+        expandedTitle?.text = if (isIncoming) "Incoming Call" else "Call"
+        expandedSubtitle?.text = "$contactName • $duration"
+        compactIcon1?.setImageResource(android.R.drawable.stat_sys_phone_call)
+        expandedIcon?.setImageResource(android.R.drawable.stat_sys_phone_call)
+
+        showIsland()
+        if (autoExpandEnabled) {
+            expandIsland()
+        }
+    }
+
+    private fun showCharging(intent: Intent) {
+        val batteryLevel = intent.getIntExtra("batteryLevel", 0)
+
+        expandedTitle?.text = "Charging"
+        expandedSubtitle?.text = "$batteryLevel%"
+        compactIcon1?.setImageResource(android.R.drawable.ic_lock_idle_charging)
+        expandedIcon?.setImageResource(android.R.drawable.ic_lock_idle_charging)
+        progressBar?.visibility = View.VISIBLE
+        progressBar?.progress = batteryLevel
+
+        showIsland()
+        if (autoExpandEnabled) {
+            android.os.Handler(mainLooper).postDelayed({
+                if (!isExpanded) expandIsland()
+            }, 1500)
+        }
+    }
+
+    private fun showTimer(intent: Intent) {
+        val duration = intent.getStringExtra("duration") ?: "00:00"
+
+        expandedTitle?.text = "Timer"
+        expandedSubtitle?.text = duration
+        compactIcon1?.setImageResource(android.R.drawable.ic_menu_recent_history)
+        expandedIcon?.setImageResource(android.R.drawable.ic_menu_recent_history)
+
+        showIsland()
+        if (autoExpandEnabled) {
+            android.os.Handler(mainLooper).postDelayed({
+                if (!isExpanded) expandIsland()
+            }, 1500)
+        }
+    }
+
+    private fun showAirPods(intent: Intent) {
+        val deviceName = intent.getStringExtra("deviceName") ?: "Bluetooth Device"
+        val connected = intent.getBooleanExtra("connected", true)
+
+        expandedTitle?.text = if (connected) "Connected" else "Disconnected"
+        expandedSubtitle?.text = deviceName
+        compactIcon1?.setImageResource(android.R.drawable.stat_sys_data_bluetooth)
+        expandedIcon?.setImageResource(android.R.drawable.stat_sys_data_bluetooth)
+
+        showIsland()
+        if (autoExpandEnabled) {
+            android.os.Handler(mainLooper).postDelayed({
+                if (!isExpanded) expandIsland()
+            }, 1500)
+        }
+
+        // Auto hide after 3 seconds
+        android.os.Handler(mainLooper).postDelayed({
+            hideIsland()
+        }, 3000)
+    }
+
+    private fun showFaceUnlock() {
+        expandedTitle?.text = "Face ID"
+        expandedSubtitle?.text = "Scanning..."
+        compactIcon1?.setImageResource(android.R.drawable.ic_lock_lock)
+        expandedIcon?.setImageResource(android.R.drawable.ic_lock_lock)
+
+        showIsland()
+
+        // Simulate unlock after 1 second
+        android.os.Handler(mainLooper).postDelayed({
+            expandedSubtitle?.text = "Unlocked"
+            android.os.Handler(mainLooper).postDelayed({
+                hideIsland()
+            }, 1500)
+        }, 1000)
+    }
+
+    private fun showIsland() {
+        islandContainer?.visibility = View.VISIBLE
+        islandContainer?.alpha = 0f
+        islandContainer?.scaleY = 0.5f
+
+        islandContainer?.animate()
+            ?.alpha(1f)
+            ?.scaleY(1f)
+            ?.setDuration(400)
+            ?.setInterpolator(AccelerateDecelerateInterpolator())
+            ?.start()
+
+        if (vibrateEnabled) {
+            hapticFeedback?.notificationFeedback()
+        }
+    }
+
+    private fun hideIsland() {
+        islandContainer?.animate()
+            ?.alpha(0f)
+            ?.scaleY(0.5f)
+            ?.setDuration(300)
+            ?.withEndAction {
+                islandContainer?.visibility = View.GONE
+                if (isExpanded) {
+                    collapseIsland()
+                }
+            }
+            ?.start()
     }
 
     private fun createNotificationChannel() {
@@ -114,9 +336,10 @@ class DynamicIslandService : Service() {
     }
 
     private fun dpToPx(dp: Int): Int {
+        val scaledDp = (dp * islandSize / 50f).toInt()
         return TypedValue.applyDimension(
             TypedValue.COMPLEX_UNIT_DIP,
-            dp.toFloat(),
+            scaledDp.toFloat(),
             resources.displayMetrics
         ).toInt()
     }
@@ -204,14 +427,14 @@ class DynamicIslandService : Service() {
 
             expandedTitle = TextView(this).apply {
                 text = "Now Playing"
-                textSize = 16f
+                textSize = 16f * (islandSize / 50f)
                 setTextColor(Color.WHITE)
                 setTypeface(null, android.graphics.Typeface.BOLD)
             }
 
             expandedSubtitle = TextView(this).apply {
                 text = "Test Song • Test Artist"
-                textSize = 13f
+                textSize = 13f * (islandSize / 50f)
                 setTextColor(Color.parseColor("#CCCCCC"))
                 setPadding(0, dpToPx(4), 0, 0)
             }
@@ -271,6 +494,9 @@ class DynamicIslandService : Service() {
             // Click listener
             islandContainer?.setOnClickListener {
                 Log.d(TAG, "Island clicked!")
+                if (vibrateEnabled) {
+                    hapticFeedback?.tapFeedback()
+                }
                 toggleExpansion()
             }
 
@@ -290,7 +516,7 @@ class DynamicIslandService : Service() {
                 PixelFormat.TRANSLUCENT
             ).apply {
                 gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-                y = dpToPx(20)
+                y = dpToPx(islandPositionY)
             }
 
             windowManager?.addView(islandContainer, params)
@@ -320,8 +546,10 @@ class DynamicIslandService : Service() {
             scaleType = ImageView.ScaleType.FIT_CENTER
             visibility = View.VISIBLE
 
-            // Add click effect
             setOnClickListener {
+                if (vibrateEnabled) {
+                    hapticFeedback?.tapFeedback()
+                }
                 animate()
                     .scaleX(0.85f)
                     .scaleY(0.85f)
@@ -359,14 +587,20 @@ class DynamicIslandService : Service() {
                 ?.setInterpolator(AccelerateDecelerateInterpolator())
                 ?.start()
 
+            if (vibrateEnabled) {
+                hapticFeedback?.notificationFeedback()
+            }
+
             Toast.makeText(this, "Tap to expand/collapse", Toast.LENGTH_SHORT).show()
 
-            // Auto expand
-            android.os.Handler(mainLooper).postDelayed({
-                if (!isExpanded) {
-                    expandIsland()
-                }
-            }, 2500)
+            // Auto expand if enabled
+            if (autoExpandEnabled) {
+                android.os.Handler(mainLooper).postDelayed({
+                    if (!isExpanded) {
+                        expandIsland()
+                    }
+                }, 2500)
+            }
 
         } catch (e: Exception) {
             Log.e(TAG, "Error showing test island", e)
@@ -385,9 +619,9 @@ class DynamicIslandService : Service() {
         Log.d(TAG, "Expanding island")
         isExpanded = true
 
-        // Animate container expansion
-        val startWidth = islandContainer?.width ?: 0
-        val targetWidth = dpToPx(320)
+        if (vibrateEnabled) {
+            hapticFeedback?.expandFeedback()
+        }
 
         compactView?.animate()
             ?.alpha(0f)
@@ -415,6 +649,10 @@ class DynamicIslandService : Service() {
         Log.d(TAG, "Collapsing island")
         isExpanded = false
 
+        if (vibrateEnabled) {
+            hapticFeedback?.collapseFeedback()
+        }
+
         expandedView?.animate()
             ?.alpha(0f)
             ?.setDuration(200)
@@ -441,6 +679,13 @@ class DynamicIslandService : Service() {
         super.onDestroy()
         Log.d(TAG, "Service destroying...")
         expandTimer?.cancel()
+
+        try {
+            unregisterReceiver(islandUpdateReceiver)
+            Log.d(TAG, "✓ Broadcast receiver unregistered")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error unregistering receiver", e)
+        }
 
         if (isViewAdded && islandContainer != null) {
             try {
