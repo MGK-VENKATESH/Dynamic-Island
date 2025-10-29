@@ -1,7 +1,5 @@
 package com.example.myapplicationdynamic.dynamicisland
 
-
-
 import android.app.Activity
 import android.content.Intent
 import android.net.Uri
@@ -9,6 +7,7 @@ import android.os.Bundle
 import android.provider.Settings
 import android.widget.Button
 import android.widget.Toast
+import com.example.myapplicationdynamic.R
 
 class MainActivity : Activity() {
 

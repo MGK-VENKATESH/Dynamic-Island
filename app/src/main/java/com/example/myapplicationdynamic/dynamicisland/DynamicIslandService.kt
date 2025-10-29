@@ -2,9 +2,7 @@ package com.example.myapplicationdynamic.dynamicisland
 
 import android.app.Service
 import android.content.*
-import android.graphics.Color
 import android.graphics.PixelFormat
-import android.graphics.drawable.GradientDrawable
 import android.os.BatteryManager
 import android.os.CountDownTimer
 import android.os.IBinder
@@ -18,6 +16,7 @@ import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.core.content.ContextCompat
+import com.example.myapplicationdynamic.R
 
 class DynamicIslandService : Service() {
 
@@ -70,12 +69,27 @@ class DynamicIslandService : Service() {
             addAction(Intent.ACTION_POWER_DISCONNECTED)
             addAction(Intent.ACTION_BATTERY_CHANGED)
         }
-        registerReceiver(updateReceiver, filter, RECEIVER_NOT_EXPORTED)
+        registerReceiver(updateReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
     }
 
     private fun createIslandView() {
-        // Create views programmatically
-        islandView = createDynamicIslandLayout()
+        islandView = LayoutInflater.from(this).inflate(R.layout.dynamic_island_layout, null)
+        islandContainer = islandView.findViewById(R.id.islandContainer)
+        compactView = islandView.findViewById(R.id.compactView)
+        expandedView = islandView.findViewById(R.id.expandedView)
+
+        // Compact views
+        compactIcon1 = islandView.findViewById(R.id.compactIcon1)
+        compactIcon2 = islandView.findViewById(R.id.compactIcon2)
+
+        // Expanded views
+        expandedTitle = islandView.findViewById(R.id.expandedTitle)
+        expandedSubtitle = islandView.findViewById(R.id.expandedSubtitle)
+        expandedIcon = islandView.findViewById(R.id.expandedIcon)
+        progressBar = islandView.findViewById(R.id.progressBar)
+        actionButton1 = islandView.findViewById(R.id.actionButton1)
+        actionButton2 = islandView.findViewById(R.id.actionButton2)
+        actionButton3 = islandView.findViewById(R.id.actionButton3)
 
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
@@ -97,135 +111,6 @@ class DynamicIslandService : Service() {
         showCompactMode()
     }
 
-    private fun createDynamicIslandLayout(): View {
-        // Main container
-        islandContainer = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            val drawable = GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                setColor(Color.BLACK)
-                cornerRadius = 60f
-            }
-            background = drawable
-            setPadding(32, 24, 32, 24)
-            elevation = 10f
-        }
-
-        // Compact view
-        compactView = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
-        }
-
-        compactIcon1 = ImageView(this).apply {
-            layoutParams = LinearLayout.LayoutParams(72, 72)
-            setColorFilter(Color.WHITE)
-        }
-
-        compactIcon2 = ImageView(this).apply {
-            layoutParams = LinearLayout.LayoutParams(72, 72).apply {
-                marginStart = 24
-            }
-            setColorFilter(Color.WHITE)
-            visibility = View.GONE
-        }
-
-        compactView.addView(compactIcon1)
-        compactView.addView(compactIcon2)
-
-        // Expanded view
-        expandedView = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
-            visibility = View.GONE
-            setPadding(32, 16, 32, 16)
-        }
-
-        expandedIcon = ImageView(this).apply {
-            layoutParams = LinearLayout.LayoutParams(96, 96)
-            setColorFilter(Color.WHITE)
-        }
-
-        expandedTitle = TextView(this).apply {
-            textSize = 18f
-            setTextColor(Color.WHITE)
-            gravity = Gravity.CENTER
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                topMargin = 16
-            }
-        }
-
-        expandedSubtitle = TextView(this).apply {
-            textSize = 14f
-            setTextColor(Color.LTGRAY)
-            gravity = Gravity.CENTER
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                topMargin = 8
-            }
-        }
-
-        progressBar = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
-            layoutParams = LinearLayout.LayoutParams(400, 20).apply {
-                topMargin = 16
-            }
-            visibility = View.GONE
-        }
-
-        val actionLayout = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                topMargin = 24
-            }
-        }
-
-        actionButton1 = ImageView(this).apply {
-            layoutParams = LinearLayout.LayoutParams(80, 80).apply {
-                marginEnd = 24
-            }
-            setColorFilter(Color.WHITE)
-            visibility = View.GONE
-        }
-
-        actionButton2 = ImageView(this).apply {
-            layoutParams = LinearLayout.LayoutParams(80, 80).apply {
-                marginEnd = 24
-            }
-            setColorFilter(Color.WHITE)
-            visibility = View.GONE
-        }
-
-        actionButton3 = ImageView(this).apply {
-            layoutParams = LinearLayout.LayoutParams(80, 80)
-            setColorFilter(Color.WHITE)
-            visibility = View.GONE
-        }
-
-        actionLayout.addView(actionButton1)
-        actionLayout.addView(actionButton2)
-        actionLayout.addView(actionButton3)
-
-        expandedView.addView(expandedIcon)
-        expandedView.addView(expandedTitle)
-        expandedView.addView(expandedSubtitle)
-        expandedView.addView(progressBar)
-        expandedView.addView(actionLayout)
-
-        islandContainer.addView(compactView)
-        islandContainer.addView(expandedView)
-
-        return islandContainer
-    }
-
     private fun setupClickListeners() {
         islandView.setOnClickListener {
             if (currentActivity != IslandActivity.NONE) {
@@ -234,6 +119,7 @@ class DynamicIslandService : Service() {
         }
 
         islandView.setOnLongClickListener {
+            // Long press opens associated app
             openAssociatedApp()
             true
         }
@@ -280,14 +166,17 @@ class DynamicIslandService : Service() {
         val title = intent.getStringExtra("title") ?: "Unknown"
         val artist = intent.getStringExtra("artist") ?: "Unknown Artist"
 
+        // Compact mode
         compactIcon1.setImageResource(android.R.drawable.ic_media_play)
         compactIcon2.visibility = View.VISIBLE
-        compactIcon2.setImageResource(android.R.drawable.ic_media_play)
+        compactIcon2.setImageDrawable(createWaveformDrawable())
 
+        // Expanded mode data
         expandedTitle.text = title
         expandedSubtitle.text = artist
         expandedIcon.setImageResource(android.R.drawable.ic_media_play)
 
+        // Music controls
         actionButton1.setImageResource(android.R.drawable.ic_media_previous)
         actionButton2.setImageResource(android.R.drawable.ic_media_pause)
         actionButton3.setImageResource(android.R.drawable.ic_media_next)
@@ -332,7 +221,7 @@ class DynamicIslandService : Service() {
 
         compactIcon1.setImageResource(android.R.drawable.ic_menu_call)
         compactIcon2.visibility = View.VISIBLE
-        compactIcon2.setImageResource(android.R.drawable.ic_menu_call)
+        compactIcon2.setImageDrawable(createPulseDrawable())
 
         expandedTitle.text = contactName
         expandedSubtitle.text = duration
@@ -340,7 +229,7 @@ class DynamicIslandService : Service() {
 
         actionButton1.setImageResource(android.R.drawable.ic_btn_speak_now)
         actionButton2.setImageResource(android.R.drawable.ic_menu_call)
-        actionButton2.setColorFilter(Color.RED)
+        actionButton2.setColorFilter(ContextCompat.getColor(this, android.R.color.holo_red_dark))
         actionButton3.visibility = View.GONE
         actionButton1.visibility = View.VISIBLE
         actionButton2.visibility = View.VISIBLE
@@ -364,7 +253,7 @@ class DynamicIslandService : Service() {
 
         compactIcon1.setImageResource(android.R.drawable.ic_lock_idle_charging)
         compactIcon2.visibility = View.VISIBLE
-        compactIcon2.setImageResource(android.R.drawable.ic_lock_idle_charging)
+        compactIcon2.setImageDrawable(createBoltDrawable())
 
         expandedTitle.text = "Charging"
         expandedSubtitle.text = "$batteryLevel%"
@@ -378,7 +267,13 @@ class DynamicIslandService : Service() {
         actionButton3.visibility = View.GONE
 
         showIslandWithAnimation()
-        autoExpandAndCollapse(3000)
+
+        // Auto dismiss after 3 seconds
+        expandTimer?.cancel()
+        expandTimer = object : CountDownTimer(3000, 1000) {
+            override fun onTick(millisUntilFinished: Long) {}
+            override fun onFinish() { hideIsland() }
+        }.start()
     }
 
     private fun handleFaceUnlock() {
@@ -400,6 +295,7 @@ class DynamicIslandService : Service() {
 
         showIslandWithAnimation()
 
+        // Simulate unlock after 1 second
         expandTimer?.cancel()
         expandTimer = object : CountDownTimer(1000, 1000) {
             override fun onTick(millisUntilFinished: Long) {}
@@ -438,7 +334,7 @@ class DynamicIslandService : Service() {
 
         compactIcon1.setImageResource(android.R.drawable.ic_menu_camera)
         compactIcon2.visibility = View.VISIBLE
-        compactIcon2.setImageResource(android.R.drawable.presence_video_online)
+        compactIcon2.setImageDrawable(createRecordingPulseDrawable())
 
         expandedTitle.text = if (isScreenRecording) "Screen Recording" else "Recording"
         expandedSubtitle.text = "00:00"
@@ -638,6 +534,11 @@ class DynamicIslandService : Service() {
         val minutes = (millis / 1000) / 60
         return String.format("%02d:%02d", minutes, seconds)
     }
+
+    private fun createWaveformDrawable() = ContextCompat.getDrawable(this, android.R.drawable.ic_media_play)
+    private fun createPulseDrawable() = ContextCompat.getDrawable(this, android.R.drawable.ic_menu_call)
+    private fun createBoltDrawable() = ContextCompat.getDrawable(this, android.R.drawable.ic_lock_idle_charging)
+    private fun createRecordingPulseDrawable() = ContextCompat.getDrawable(this, android.R.drawable.presence_video_online)
 
     override fun onDestroy() {
         super.onDestroy()
