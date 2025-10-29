@@ -5,6 +5,7 @@
     <!-- Required Permissions -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
     <uses-permission android:name="android.permission.CALL_PHONE"/>
@@ -34,11 +35,16 @@
             </intent-filter>
         </activity>
 
-        <!-- Dynamic Island Service -->
+        <!-- Dynamic Island Service with foregroundServiceType -->
         <service
             android:name="com.example.myapplicationdynamic.dynamicisland.DynamicIslandService"
             android:enabled="true"
-            android:exported="false"/>
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Dynamic Island overlay display" />
+        </service>
 
         <!-- Notification Listener Service -->
         <service
