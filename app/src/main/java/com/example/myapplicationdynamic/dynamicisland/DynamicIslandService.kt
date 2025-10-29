@@ -7,11 +7,13 @@ import android.app.Service
 import android.content.*
 import android.graphics.Color
 import android.graphics.PixelFormat
+import android.graphics.drawable.GradientDrawable
 import android.os.BatteryManager
 import android.os.Build
 import android.os.CountDownTimer
 import android.os.IBinder
 import android.util.Log
+import android.util.TypedValue
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -40,11 +42,8 @@ class DynamicIslandService : Service() {
     private var compactView: LinearLayout? = null
     private var expandedView: LinearLayout? = null
 
-    // Compact views
     private var compactIcon1: ImageView? = null
     private var compactIcon2: ImageView? = null
-
-    // Expanded views
     private var expandedTitle: TextView? = null
     private var expandedSubtitle: TextView? = null
     private var expandedIcon: ImageView? = null
@@ -67,19 +66,15 @@ class DynamicIslandService : Service() {
         Log.d(TAG, "========== SERVICE STARTING ==========")
 
         try {
-            // Create notification channel and start foreground
             createNotificationChannel()
             startForeground(NOTIFICATION_ID, createNotification())
             Log.d(TAG, "✓ Foreground service started")
 
-            // Get window manager
             windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
             Log.d(TAG, "✓ WindowManager obtained")
 
-            // Create and add the island view
             createIslandView()
 
-            // Wait a bit then show test island
             android.os.Handler(mainLooper).postDelayed({
                 Log.d(TAG, "Showing test island...")
                 showTestIsland()
@@ -118,16 +113,32 @@ class DynamicIslandService : Service() {
             .build()
     }
 
+    private fun dpToPx(dp: Int): Int {
+        return TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP,
+            dp.toFloat(),
+            resources.displayMetrics
+        ).toInt()
+    }
+
+    private fun createRoundedBackground(cornerRadius: Float): GradientDrawable {
+        return GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            setColor(Color.BLACK)
+            setCornerRadius(cornerRadius)
+        }
+    }
+
     private fun createIslandView() {
         try {
             Log.d(TAG, "Creating island view...")
 
-            // Create view programmatically to avoid inflation issues
+            // Main container with rounded corners
             islandContainer = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
-                setBackgroundColor(Color.BLACK)
-                setPadding(40, 30, 40, 30)
-                elevation = 10f
+                background = createRoundedBackground(dpToPx(40).toFloat())
+                setPadding(dpToPx(16), dpToPx(12), dpToPx(16), dpToPx(12))
+                elevation = dpToPx(16).toFloat()
             }
 
             // Create compact view
@@ -137,14 +148,14 @@ class DynamicIslandService : Service() {
             }
 
             compactIcon1 = ImageView(this).apply {
-                layoutParams = LinearLayout.LayoutParams(60, 60)
+                layoutParams = LinearLayout.LayoutParams(dpToPx(24), dpToPx(24))
                 setColorFilter(Color.WHITE)
                 setImageResource(android.R.drawable.ic_media_play)
             }
 
             compactIcon2 = ImageView(this).apply {
-                layoutParams = LinearLayout.LayoutParams(60, 60).apply {
-                    marginStart = 20
+                layoutParams = LinearLayout.LayoutParams(dpToPx(24), dpToPx(24)).apply {
+                    marginStart = dpToPx(12)
                 }
                 setColorFilter(Color.WHITE)
                 setImageResource(android.R.drawable.ic_media_play)
@@ -157,59 +168,79 @@ class DynamicIslandService : Service() {
             // Create expanded view
             expandedView = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
-                layoutParams = LinearLayout.LayoutParams(800, LinearLayout.LayoutParams.WRAP_CONTENT)
+                layoutParams = LinearLayout.LayoutParams(
+                    dpToPx(280),
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
                 visibility = View.GONE
             }
 
-            // Expanded content
-            val expandedContent = LinearLayout(this).apply {
+            // Expanded header
+            val expandedHeader = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
             }
 
             expandedIcon = ImageView(this).apply {
-                layoutParams = LinearLayout.LayoutParams(100, 100)
+                layoutParams = LinearLayout.LayoutParams(dpToPx(48), dpToPx(48))
                 setColorFilter(Color.WHITE)
                 setImageResource(android.R.drawable.ic_media_play)
+                background = createRoundedBackground(dpToPx(12).toFloat()).apply {
+                    setColor(Color.parseColor("#222222"))
+                }
+                setPadding(dpToPx(8), dpToPx(8), dpToPx(8), dpToPx(8))
             }
 
             val textContainer = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
-                    marginStart = 40
+                layoutParams = LinearLayout.LayoutParams(
+                    0,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    1f
+                ).apply {
+                    marginStart = dpToPx(16)
                 }
             }
 
             expandedTitle = TextView(this).apply {
-                text = "Test Song"
-                textSize = 18f
+                text = "Now Playing"
+                textSize = 16f
                 setTextColor(Color.WHITE)
+                setTypeface(null, android.graphics.Typeface.BOLD)
             }
 
             expandedSubtitle = TextView(this).apply {
-                text = "Test Artist"
-                textSize = 14f
-                setTextColor(Color.LTGRAY)
+                text = "Test Song • Test Artist"
+                textSize = 13f
+                setTextColor(Color.parseColor("#CCCCCC"))
+                setPadding(0, dpToPx(4), 0, 0)
             }
 
             textContainer.addView(expandedTitle)
             textContainer.addView(expandedSubtitle)
 
-            expandedContent.addView(expandedIcon)
-            expandedContent.addView(textContainer)
+            expandedHeader.addView(expandedIcon)
+            expandedHeader.addView(textContainer)
 
             // Progress bar
             progressBar = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
-                    10
+                    dpToPx(4)
                 ).apply {
-                    topMargin = 40
+                    topMargin = dpToPx(16)
                 }
+                progressDrawable = createRoundedBackground(dpToPx(2).toFloat()).apply {
+                    setColor(Color.parseColor("#FFFFFF"))
+                }
+                background = createRoundedBackground(dpToPx(2).toFloat()).apply {
+                    setColor(Color.parseColor("#333333"))
+                }
+                progress = 45
                 visibility = View.GONE
             }
 
-            // Action buttons
+            // Action buttons container
             val actionsContainer = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER
@@ -217,37 +248,19 @@ class DynamicIslandService : Service() {
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
                 ).apply {
-                    topMargin = 40
+                    topMargin = dpToPx(16)
                 }
             }
 
-            actionButton1 = ImageView(this).apply {
-                layoutParams = LinearLayout.LayoutParams(100, 100).apply {
-                    marginEnd = 40
-                }
-                setColorFilter(Color.WHITE)
-                visibility = View.GONE
-            }
-
-            actionButton2 = ImageView(this).apply {
-                layoutParams = LinearLayout.LayoutParams(100, 100).apply {
-                    marginEnd = 40
-                }
-                setColorFilter(Color.WHITE)
-                visibility = View.GONE
-            }
-
-            actionButton3 = ImageView(this).apply {
-                layoutParams = LinearLayout.LayoutParams(100, 100)
-                setColorFilter(Color.WHITE)
-                visibility = View.GONE
-            }
+            actionButton1 = createActionButton(android.R.drawable.ic_media_previous)
+            actionButton2 = createActionButton(android.R.drawable.ic_media_pause)
+            actionButton3 = createActionButton(android.R.drawable.ic_media_next)
 
             actionsContainer.addView(actionButton1)
             actionsContainer.addView(actionButton2)
             actionsContainer.addView(actionButton3)
 
-            expandedView?.addView(expandedContent)
+            expandedView?.addView(expandedHeader)
             expandedView?.addView(progressBar)
             expandedView?.addView(actionsContainer)
 
@@ -255,13 +268,13 @@ class DynamicIslandService : Service() {
             islandContainer?.addView(compactView)
             islandContainer?.addView(expandedView)
 
-            // Set up click listener
+            // Click listener
             islandContainer?.setOnClickListener {
                 Log.d(TAG, "Island clicked!")
                 toggleExpansion()
             }
 
-            // Create window layout parameters
+            // Window parameters
             val params = WindowManager.LayoutParams(
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 WindowManager.LayoutParams.WRAP_CONTENT,
@@ -277,20 +290,51 @@ class DynamicIslandService : Service() {
                 PixelFormat.TRANSLUCENT
             ).apply {
                 gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-                y = 50
+                y = dpToPx(20)
             }
 
-            // Add view to window
             windowManager?.addView(islandContainer, params)
             isViewAdded = true
 
-            Log.d(TAG, "✓ Island view created and added successfully!")
-            Toast.makeText(this, "Dynamic Island Ready!", Toast.LENGTH_SHORT).show()
+            Log.d(TAG, "✓ Island view created successfully!")
+            Toast.makeText(this, "Dynamic Island Ready! ✨", Toast.LENGTH_SHORT).show()
 
         } catch (e: Exception) {
             Log.e(TAG, "✗ ERROR creating island view", e)
             e.printStackTrace()
-            Toast.makeText(this, "Error creating island: ${e.message}", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun createActionButton(iconRes: Int): ImageView {
+        return ImageView(this).apply {
+            layoutParams = LinearLayout.LayoutParams(dpToPx(44), dpToPx(44)).apply {
+                setMargins(dpToPx(8), 0, dpToPx(8), 0)
+            }
+            setImageResource(iconRes)
+            setColorFilter(Color.WHITE)
+            background = createRoundedBackground(dpToPx(22).toFloat()).apply {
+                setColor(Color.parseColor("#333333"))
+            }
+            setPadding(dpToPx(10), dpToPx(10), dpToPx(10), dpToPx(10))
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            visibility = View.VISIBLE
+
+            // Add click effect
+            setOnClickListener {
+                animate()
+                    .scaleX(0.85f)
+                    .scaleY(0.85f)
+                    .setDuration(100)
+                    .withEndAction {
+                        animate()
+                            .scaleX(1f)
+                            .scaleY(1f)
+                            .setDuration(100)
+                            .start()
+                    }
+                    .start()
+            }
         }
     }
 
@@ -304,20 +348,28 @@ class DynamicIslandService : Service() {
             Log.d(TAG, "Showing test island...")
             currentActivity = IslandActivity.MUSIC
 
-            // Make it visible
             islandContainer?.visibility = View.VISIBLE
-            islandContainer?.alpha = 1f
+            islandContainer?.alpha = 0f
+            islandContainer?.scaleY = 0.5f
 
-            Toast.makeText(this, "Test island showing!", Toast.LENGTH_SHORT).show()
+            islandContainer?.animate()
+                ?.alpha(1f)
+                ?.scaleY(1f)
+                ?.setDuration(400)
+                ?.setInterpolator(AccelerateDecelerateInterpolator())
+                ?.start()
 
-            // Auto expand after 2 seconds
+            Toast.makeText(this, "Tap to expand/collapse", Toast.LENGTH_SHORT).show()
+
+            // Auto expand
             android.os.Handler(mainLooper).postDelayed({
-                expandIsland()
-            }, 2000)
+                if (!isExpanded) {
+                    expandIsland()
+                }
+            }, 2500)
 
         } catch (e: Exception) {
             Log.e(TAG, "Error showing test island", e)
-            Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -333,16 +385,30 @@ class DynamicIslandService : Service() {
         Log.d(TAG, "Expanding island")
         isExpanded = true
 
-        compactView?.visibility = View.GONE
-        expandedView?.visibility = View.VISIBLE
-        expandedView?.alpha = 0f
+        // Animate container expansion
+        val startWidth = islandContainer?.width ?: 0
+        val targetWidth = dpToPx(320)
 
-        expandedView?.animate()
-            ?.alpha(1f)
-            ?.setDuration(300)
+        compactView?.animate()
+            ?.alpha(0f)
+            ?.setDuration(200)
+            ?.withEndAction {
+                compactView?.visibility = View.GONE
+                expandedView?.visibility = View.VISIBLE
+                expandedView?.alpha = 0f
+
+                expandedView?.animate()
+                    ?.alpha(1f)
+                    ?.setDuration(300)
+                    ?.start()
+            }
             ?.start()
 
-        Toast.makeText(this, "Island Expanded", Toast.LENGTH_SHORT).show()
+        islandContainer?.animate()
+            ?.scaleX(1.1f)
+            ?.setDuration(400)
+            ?.setInterpolator(AccelerateDecelerateInterpolator())
+            ?.start()
     }
 
     private fun collapseIsland() {
@@ -355,10 +421,20 @@ class DynamicIslandService : Service() {
             ?.withEndAction {
                 expandedView?.visibility = View.GONE
                 compactView?.visibility = View.VISIBLE
+                compactView?.alpha = 0f
+
+                compactView?.animate()
+                    ?.alpha(1f)
+                    ?.setDuration(300)
+                    ?.start()
             }
             ?.start()
 
-        Toast.makeText(this, "Island Collapsed", Toast.LENGTH_SHORT).show()
+        islandContainer?.animate()
+            ?.scaleX(1.0f)
+            ?.setDuration(400)
+            ?.setInterpolator(AccelerateDecelerateInterpolator())
+            ?.start()
     }
 
     override fun onDestroy() {

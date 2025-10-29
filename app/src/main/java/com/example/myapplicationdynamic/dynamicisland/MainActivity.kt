@@ -31,6 +31,7 @@ class MainActivity : Activity() {
 
         val startButton: Button = findViewById(R.id.btnStart)
         val stopButton: Button = findViewById(R.id.btnStop)
+        val settingsButton: Button = findViewById(R.id.btnSettings)
 
         startButton.setOnClickListener {
             Log.d(TAG, "START button clicked")
@@ -42,7 +43,11 @@ class MainActivity : Activity() {
             stopIslandService()
         }
 
-        // Check permissions on startup
+        settingsButton.setOnClickListener {
+            Log.d(TAG, "SETTINGS button clicked")
+            openSettings()
+        }
+
         checkAllPermissions()
     }
 
@@ -55,7 +60,6 @@ class MainActivity : Activity() {
     }
 
     private fun startDynamicIsland() {
-        // Check overlay permission
         if (!checkOverlayPermission()) {
             Log.d(TAG, "Requesting overlay permission...")
             Toast.makeText(this, "Please grant overlay permission", Toast.LENGTH_SHORT).show()
@@ -63,13 +67,11 @@ class MainActivity : Activity() {
             return
         }
 
-        // Check phone permission (optional but recommended)
         if (!checkPhonePermission()) {
             Log.d(TAG, "Phone permission not granted, requesting...")
             requestPhonePermission()
         }
 
-        // Start the service
         startIslandService()
     }
 
@@ -112,13 +114,18 @@ class MainActivity : Activity() {
         }
     }
 
+    private fun openSettings() {
+        val intent = Intent(this, SettingsActivity::class.java)
+        startActivity(intent)
+    }
+
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
 
         if (requestCode == OVERLAY_PERMISSION_REQ_CODE) {
             if (checkOverlayPermission()) {
                 Log.d(TAG, "✓ Overlay permission granted!")
-                Toast.makeText(this, "Permission granted! Click START again", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Permission granted! ✓", Toast.LENGTH_SHORT).show()
             } else {
                 Log.d(TAG, "✗ Overlay permission denied")
                 Toast.makeText(
@@ -162,7 +169,7 @@ class MainActivity : Activity() {
 
             Toast.makeText(
                 this,
-                "Dynamic Island Started!\nLook at the top of the screen",
+                "Dynamic Island Started! ✨\nLook at the top of screen",
                 Toast.LENGTH_LONG
             ).show()
 
